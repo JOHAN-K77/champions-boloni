@@ -31,7 +31,7 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
 (function () {
     const table       = document.getElementById('invoiceTable');
     if (!table) return;
- 
+
     const tbody       = document.getElementById('invoiceBody');
     const searchInput = document.getElementById('searchInput');
     const filterFrom  = document.getElementById('filterFrom');
@@ -42,37 +42,44 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
     const pageInfo    = document.getElementById('paginationInfo');
     const selectedLabel = document.getElementById('selectedLabel');
     const selectedIdEl  = document.getElementById('selectedId');
- 
+
     const btnPreview  = document.getElementById('btnPreview');
     const btnEdit     = document.getElementById('btnEditInvoice');
     const btnCancel   = document.getElementById('btnCancel');
     const btnPrint    = document.getElementById('btnPrintInvoice');
     const btnPrintModal = document.getElementById('btnPrintFromModal');
- 
+    const previewModal = document.getElementById('previewModal');
+
     let sortCol = -1, sortDir = 1;
     let selectedRow = null;
- 
-    // ── data rows ────────────────────────────────────────────
+
     function dataRows() {
-        return Array.from(tbody.querySelectorAll('tr.inv-row'));
+        return Array.from(tbody?.querySelectorAll('tr.inv-row') || []);
     }
- 
+
     function setButtons(enabled) {
         [btnPreview, btnEdit, btnCancel, btnPrint].forEach(b => {
             if (b) b.disabled = !enabled;
         });
     }
- 
-    // ── row selection ────────────────────────────────────────
+
+    function clearSelection() {
+        if (selectedRow) {
+            selectedRow.classList.remove('row-selected');
+        }
+        selectedRow = null;
+        if (selectedLabel) selectedLabel.style.opacity = '0';
+        setButtons(false);
+    }
+
     function selectRow(row) {
-        // clicking selected row deselects
+        if (!row) return;
+
         if (selectedRow === row) {
-            row.classList.remove('row-selected');
-            selectedRow = null;
-            selectedLabel.style.opacity = '0';
-            setButtons(false);
+            clearSelection();
             return;
         }
+
         if (selectedRow) selectedRow.classList.remove('row-selected');
         selectedRow = row;
         row.classList.add('row-selected');
@@ -80,88 +87,107 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         if (selectedLabel) selectedLabel.style.opacity = '1';
         setButtons(true);
     }
- 
-    dataRows().forEach(row => {
-        row.addEventListener('click', () => selectRow(row));
-    });
-     
-    // ── preview modal ────────────────────────────────────────
+
     function openPreview(row) {
+        if (!row || !previewModal) return;
+
         const d = row.dataset;
-        document.getElementById('previewModalSubtitle').textContent = d.id;
-        document.getElementById('prev_invoiceId').textContent   = d.id       || '—';
-        document.getElementById('prev_invoiceDate').textContent  = d.date     || '—';
-        document.getElementById('prev_quotationId').textContent  = d.quotation|| '—';
-        document.getElementById('prev_instalment').textContent   = d.instalment|| '—';
-        document.getElementById('prev_qdate').textContent        = d.qdate    || '—';
-        document.getElementById('prev_total').textContent        = 'Rp ' + (d.total || '—');
- 
+        const subtitle = document.getElementById('previewModalSubtitle');
+        const invoiceId = document.getElementById('prev_invoiceId');
+        const invoiceDate = document.getElementById('prev_invoiceDate');
+        const quotationId = document.getElementById('prev_quotationId');
+        const instalment = document.getElementById('prev_instalment');
+        const qdate = document.getElementById('prev_qdate');
+        const total = document.getElementById('prev_total');
         const statusEl = document.getElementById('prev_status');
-        statusEl.textContent = d.status || '—';
-        statusEl.className   = 'status-badge ' +
-            (d.status === 'Paid' ? 'status-paid' : 'status-unpaid');
- 
-        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-        modal.show();
+
+        if (subtitle) subtitle.textContent = d.id || '—';
+        if (invoiceId) invoiceId.textContent = d.id || '—';
+        if (invoiceDate) invoiceDate.textContent = d.date || '—';
+        if (quotationId) quotationId.textContent = d.quotation || '—';
+        if (instalment) instalment.textContent = d.instalment || '—';
+        if (qdate) qdate.textContent = d.qdate || '—';
+        if (total) total.textContent = 'Rp ' + (d.total || '—');
+
+        if (statusEl) {
+            statusEl.textContent = d.status || '—';
+            statusEl.className = 'status-badge ' +
+                (d.status === 'Paid' ? 'status-paid' : 'status-unpaid');
+        }
+
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(previewModal);
+            modal.show();
+        } else {
+            previewModal.classList.add('show');
+            previewModal.style.display = 'block';
+            previewModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
     }
- 
+
+    if (tbody) {
+        tbody.addEventListener('click', (event) => {
+            const row = event.target.closest('tr.inv-row');
+            if (row) selectRow(row);
+        });
+
+        tbody.addEventListener('dblclick', (event) => {
+            const row = event.target.closest('tr.inv-row');
+            if (row) {
+                selectRow(row);
+                openPreview(row);
+            }
+        });
+    }
+
     if (btnPreview) {
         btnPreview.addEventListener('click', () => {
-            if (selectedRow) openPreview(selectedRow);
+            const targetRow = selectedRow || dataRows().find(row => row.style.display !== 'none');
+            if (targetRow) openPreview(targetRow);
         });
     }
- 
-    // Double-click row = instant preview
-    dataRows().forEach(row => {
-        row.addEventListener('dblclick', () => {
-            selectRow(row);
-            openPreview(row);
-        });
-    });
- 
-    // Print from modal
+
     if (btnPrintModal) {
         btnPrintModal.addEventListener('click', () => {
             window.print();
         });
     }
- 
-    // ── other action stubs ───────────────────────────────────
+
     if (btnEdit) btnEdit.addEventListener('click', () => {
         if (selectedRow) window.location.href = `/finance/${selectedRow.dataset.id}/edit`;
     });
- 
+
     if (btnPrint) btnPrint.addEventListener('click', () => {
-        if (selectedRow) openPreview(selectedRow); // open preview first, then print from there
+        const targetRow = selectedRow || dataRows().find(row => row.style.display !== 'none');
+        if (targetRow) openPreview(targetRow);
     });
- 
+
     if (btnCancel) btnCancel.addEventListener('click', () => {
         if (!selectedRow) return;
         if (confirm(`Cancel invoice ${selectedRow.dataset.id}?\nThis action cannot be undone.`)) {
             // TODO: POST /finance/{id}/cancel
         }
     });
- 
-    // ── filter ───────────────────────────────────────────────
+
     function applyFilter() {
         const q    = (searchInput?.value || '').toLowerCase();
         const from = filterFrom?.value || '';
         const to   = filterTo?.value   || '';
         let visible = 0;
- 
+
         dataRows().forEach(row => {
             const invDate = row.dataset.date || '';
             const text    = row.textContent.toLowerCase();
- 
+
             const show = (!q    || text.includes(q))
                       && (!from || invDate >= from)
                       && (!to   || invDate <= to);
- 
+
             row.style.display = show ? '' : 'none';
             if (show) visible++;
         });
- 
-        // re-number visible rows
+
         let n = 1;
         dataRows().forEach(row => {
             if (row.style.display !== 'none') {
@@ -169,13 +195,12 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
                 if (numCell) numCell.textContent = n++;
             }
         });
- 
-        if (emptyRow)   emptyRow.classList.toggle('d-none', visible > 0);
+
+        if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
         if (rowCountEl) rowCountEl.textContent = visible;
-        if (pageInfo)   pageInfo.textContent   = `Showing ${visible} record${visible !== 1 ? 's' : ''}`;
+        if (pageInfo) pageInfo.textContent = `Showing ${visible} record${visible !== 1 ? 's' : ''}`;
     }
- 
-    // ── sort ─────────────────────────────────────────────────
+
     table.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', () => {
             const col = parseInt(th.dataset.col);
@@ -183,7 +208,7 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
             sortDir = (sortCol === col) ? sortDir * -1 : 1;
             sortCol = col;
             th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
- 
+
             const rows = dataRows();
             rows.sort((a, b) => {
                 const aT = a.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
@@ -195,18 +220,17 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
             applyFilter();
         });
     });
- 
-    // ── event listeners ──────────────────────────────────────
-    searchInput?.addEventListener('input',  applyFilter);
+
+    searchInput?.addEventListener('input', applyFilter);
     filterFrom ?.addEventListener('change', applyFilter);
     filterTo   ?.addEventListener('change', applyFilter);
-    clearBtn   ?.addEventListener('click',  () => {
+    clearBtn   ?.addEventListener('click', () => {
         if (searchInput) searchInput.value = '';
         if (filterFrom)  filterFrom.value  = '';
         if (filterTo)    filterTo.value    = '';
         applyFilter();
     });
- 
+
     applyFilter();
 })();
  
