@@ -23,7 +23,6 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         }
     });
 });
-
  
 // ============================================================
 // FINANCE INDEX — Search, Date Filter, Sort, Row Select
@@ -41,10 +40,14 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
     const rowCountEl  = document.getElementById('rowCount');
     const emptyRow    = document.getElementById('emptyRow');
     const pageInfo    = document.getElementById('paginationInfo');
+    const selectedLabel = document.getElementById('selectedLabel');
+    const selectedIdEl  = document.getElementById('selectedId');
  
+    const btnPreview  = document.getElementById('btnPreview');
     const btnEdit     = document.getElementById('btnEditInvoice');
     const btnCancel   = document.getElementById('btnCancel');
     const btnPrint    = document.getElementById('btnPrintInvoice');
+    const btnPrintModal = document.getElementById('btnPrintFromModal');
  
     let sortCol = -1, sortDir = 1;
     let selectedRow = null;
@@ -54,28 +57,89 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         return Array.from(tbody.querySelectorAll('tr.inv-row'));
     }
  
-    // ── row selection ────────────────────────────────────────
-    function selectRow(row) {
-        if (selectedRow) selectedRow.classList.remove('row-selected');
-        if (selectedRow === row) {
-            selectedRow = null;
-            setActionButtons(false);
-            return;
-        }
-        selectedRow = row;
-        row.classList.add('row-selected');
-        setActionButtons(true);
+    function setButtons(enabled) {
+        [btnPreview, btnEdit, btnCancel, btnPrint].forEach(b => {
+            if (b) b.disabled = !enabled;
+        });
     }
  
-    function setActionButtons(enabled) {
-        [btnEdit, btnCancel, btnPrint].forEach(btn => {
-            if (!btn) return;
-            btn.disabled = !enabled;
-        });
+    // ── row selection ────────────────────────────────────────
+    function selectRow(row) {
+        // clicking selected row deselects
+        if (selectedRow === row) {
+            row.classList.remove('row-selected');
+            selectedRow = null;
+            selectedLabel.style.opacity = '0';
+            setButtons(false);
+            return;
+        }
+        if (selectedRow) selectedRow.classList.remove('row-selected');
+        selectedRow = row;
+        row.classList.add('row-selected');
+        if (selectedIdEl) selectedIdEl.textContent = row.dataset.id;
+        if (selectedLabel) selectedLabel.style.opacity = '1';
+        setButtons(true);
     }
  
     dataRows().forEach(row => {
         row.addEventListener('click', () => selectRow(row));
+    });
+     
+    // ── preview modal ────────────────────────────────────────
+    function openPreview(row) {
+        const d = row.dataset;
+        document.getElementById('previewModalSubtitle').textContent = d.id;
+        document.getElementById('prev_invoiceId').textContent   = d.id       || '—';
+        document.getElementById('prev_invoiceDate').textContent  = d.date     || '—';
+        document.getElementById('prev_quotationId').textContent  = d.quotation|| '—';
+        document.getElementById('prev_instalment').textContent   = d.instalment|| '—';
+        document.getElementById('prev_qdate').textContent        = d.qdate    || '—';
+        document.getElementById('prev_total').textContent        = 'Rp ' + (d.total || '—');
+ 
+        const statusEl = document.getElementById('prev_status');
+        statusEl.textContent = d.status || '—';
+        statusEl.className   = 'status-badge ' +
+            (d.status === 'Paid' ? 'status-paid' : 'status-unpaid');
+ 
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+    }
+ 
+    if (btnPreview) {
+        btnPreview.addEventListener('click', () => {
+            if (selectedRow) openPreview(selectedRow);
+        });
+    }
+ 
+    // Double-click row = instant preview
+    dataRows().forEach(row => {
+        row.addEventListener('dblclick', () => {
+            selectRow(row);
+            openPreview(row);
+        });
+    });
+ 
+    // Print from modal
+    if (btnPrintModal) {
+        btnPrintModal.addEventListener('click', () => {
+            window.print();
+        });
+    }
+ 
+    // ── other action stubs ───────────────────────────────────
+    if (btnEdit) btnEdit.addEventListener('click', () => {
+        if (selectedRow) window.location.href = `/finance/${selectedRow.dataset.id}/edit`;
+    });
+ 
+    if (btnPrint) btnPrint.addEventListener('click', () => {
+        if (selectedRow) openPreview(selectedRow); // open preview first, then print from there
+    });
+ 
+    if (btnCancel) btnCancel.addEventListener('click', () => {
+        if (!selectedRow) return;
+        if (confirm(`Cancel invoice ${selectedRow.dataset.id}?\nThis action cannot be undone.`)) {
+            // TODO: POST /finance/{id}/cancel
+        }
     });
  
     // ── filter ───────────────────────────────────────────────
@@ -86,8 +150,7 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         let visible = 0;
  
         dataRows().forEach(row => {
-            const cells   = row.querySelectorAll('td');
-            const invDate = cells[2]?.textContent.trim() || '';
+            const invDate = row.dataset.date || '';
             const text    = row.textContent.toLowerCase();
  
             const show = (!q    || text.includes(q))
@@ -113,18 +176,6 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
     }
  
     // ── sort ─────────────────────────────────────────────────
-    function applySort(colIdx) {
-        const rows = dataRows();
-        rows.sort((a, b) => {
-            const aText = a.querySelectorAll('td')[colIdx + 1]?.textContent.trim() || '';
-            const bText = b.querySelectorAll('td')[colIdx + 1]?.textContent.trim() || '';
-            return aText.localeCompare(bText, undefined, { numeric: true }) * sortDir;
-        });
-        rows.forEach(r => tbody.appendChild(r));
-        if (emptyRow) tbody.appendChild(emptyRow);
-        applyFilter();
-    }
- 
     table.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', () => {
             const col = parseInt(th.dataset.col);
@@ -132,27 +183,17 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
             sortDir = (sortCol === col) ? sortDir * -1 : 1;
             sortCol = col;
             th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
-            applySort(col);
+ 
+            const rows = dataRows();
+            rows.sort((a, b) => {
+                const aT = a.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
+                const bT = b.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
+                return aT.localeCompare(bT, undefined, { numeric: true }) * sortDir;
+            });
+            rows.forEach(r => tbody.appendChild(r));
+            if (emptyRow) tbody.appendChild(emptyRow);
+            applyFilter();
         });
-    });
- 
-    // ── action button stubs ──────────────────────────────────
-    if (btnEdit) btnEdit.addEventListener('click', () => {
-        const id = selectedRow?.dataset.id;
-        if (id) window.location.href = `/finance/${id}/edit`;
-    });
- 
-    if (btnPrint) btnPrint.addEventListener('click', () => {
-        const id = selectedRow?.dataset.id;
-        if (id) window.open(`/finance/${id}/print`, '_blank');
-    });
- 
-    if (btnCancel) btnCancel.addEventListener('click', () => {
-        const id = selectedRow?.dataset.id;
-        if (!id) return;
-        if (confirm(`Cancel invoice ${id}?`)) {
-            // POST /finance/{id}/cancel
-        }
     });
  
     // ── event listeners ──────────────────────────────────────
