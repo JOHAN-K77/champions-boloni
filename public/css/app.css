@@ -1,4 +1,4 @@
-Sections:
+/* Sections:
      1.  Base & Layout
      2.  Sidebar
      3.  Header & Navigation
@@ -488,4 +488,48 @@ body {
     .modal-footer               { display: none !important; }
     .modal-dialog               { margin: 0; max-width: 100%; box-shadow: none; }
     #receiptArea                { padding: 0 !important; }
+}
+ 
+/* ============================================================
+   11. FINANCE — TAB STRIP
+   Quotation | Invoice | Payment tab buttons sitting flush
+   against the top of the richbox.
+============================================================ */
+ 
+.finance-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: none;
+}
+ 
+.fin-tab {
+    background: #e0e0e0;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 6px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    margin-right: 3px;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.02em;
+    outline: none;
+}
+ 
+.fin-tab:hover {
+    background: #d0d0d0;
+    color: #333;
+}
+ 
+.fin-tab.active {
+    background: #111111;
+    color: #e3b705;
+    border-color: #111111;
+}
+ 
+/* Richbox directly beneath tabs loses its top radius */
+.fin-tab-panel .richbox {
+    border-top-left-radius: 0;
 }
