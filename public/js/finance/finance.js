@@ -1,67 +1,165 @@
 // ============================================================
-// Header tab switching (Cash / Transfer / Card / Giro / Deposit)
+// finance.js — Champions Boloni School Admin
+//
+// Sections:
+//   A. Create page — header payment-method tab switching
+//   B. Create page — Paid Off checkbox (Invoice richbox)
+//   C. Create page — Used checkbox (Discount richbox)
+//   D. Create page — Deposit "All" checkbox sync
+//   E. Create page — Live system date clock
+//   F. Index page  — Tab strip, row select, sort, filter,
+//                    preview modal
 // ============================================================
-document.querySelectorAll('.tab-page').forEach((tab) => {
-    tab.addEventListener('click', (e) => {
+ 
+ 
+// ============================================================
+// A. CREATE PAGE — Payment method tab switching
+//    Driven by header tabs (.tab-page) → shows #tab-{method}
+// ============================================================
+document.querySelectorAll('.tab-page').forEach(function (tab) {
+    tab.addEventListener('click', function (e) {
         e.preventDefault();
-        const tabId = tab.id;
-        const segmentId = tabId.split('_')[1]; // e.g. 'cash', 'transfer'
+        var segmentId = this.id.split('_')[1]; // e.g. 'cash', 'transfer'
  
-        document.querySelectorAll('.tab-content-area').forEach((content) => {
-            content.style.display = 'none';
+        document.querySelectorAll('.tab-content-area').forEach(function (el) {
+            el.style.display = 'none';
         });
- 
-        document.querySelectorAll('.tab-page').forEach((item) => {
-            item.classList.remove('active');
+        document.querySelectorAll('.tab-page').forEach(function (el) {
+            el.classList.remove('active');
         });
  
         tab.classList.add('active');
  
-        const contentToShow = document.getElementById(`tab-${segmentId}`);
-        if (contentToShow) {
-            contentToShow.style.display = 'block';
+        var target = document.getElementById('tab-' + segmentId);
+        if (target) target.style.display = 'block';
+    });
+});
+ 
+ 
+// ============================================================
+// B. CREATE PAGE — Invoice richbox "Paid Off" checkbox
+//    Checked  → dim row, disable pay input
+//    Unchecked → restore row and input
+// ============================================================
+document.querySelectorAll('.paid-check').forEach(function (checkbox) {
+    checkbox.addEventListener('change', function () {
+        var row      = this.closest('tr');
+        var payInput = row ? row.querySelector('.pay-input') : null;
+ 
+        if (this.checked) {
+            if (row) row.classList.add('richbox-row-muted');
+            if (payInput) { payInput.disabled = true; payInput.placeholder = '–'; }
+        } else {
+            if (row) row.classList.remove('richbox-row-muted');
+            if (payInput) { payInput.disabled = false; payInput.placeholder = '0'; }
         }
     });
 });
-
+ 
+ 
 // ============================================================
-// FINANCE INDEX — Tab switching, row selection, search,
-//                 sort, filter, preview modal
+// C. CREATE PAGE — Discount richbox "Used" checkbox
+//    Checked  → dim row
+//    Unchecked → restore row
+// ============================================================
+document.querySelectorAll('.disc-check').forEach(function (checkbox) {
+    checkbox.addEventListener('change', function () {
+        var row = this.closest('tr');
+        if (!row) return;
+        row.classList.toggle('richbox-row-muted', this.checked);
+    });
+ 
+    // Apply initial dimming on page load
+    if (checkbox.checked && !checkbox.disabled) {
+        var row = checkbox.closest('tr');
+        if (row) row.classList.add('richbox-row-muted');
+    }
+});
+ 
+ 
+// ============================================================
+// D. CREATE PAGE — Deposit richbox "All" checkbox sync
+//    "All" checks → checks Used + Paid for that row
+//    Used or Paid individually → syncs "All" state
+// ============================================================
+document.querySelectorAll('#depositTable tbody tr').forEach(function (row) {
+    var usedCheck = row.querySelector('.dep-used-check');
+    var paidCheck = row.querySelector('.dep-paid-check');
+    var allCheck  = row.querySelector('.dep-all-check');
+ 
+    if (!allCheck) return; // rows without the three checkboxes (e.g. empty-state row)
+ 
+    allCheck.addEventListener('change', function () {
+        if (usedCheck) usedCheck.checked = this.checked;
+        if (paidCheck) paidCheck.checked = this.checked;
+    });
+ 
+    function syncAll() {
+        if (allCheck && usedCheck && paidCheck) {
+            allCheck.checked = usedCheck.checked && paidCheck.checked;
+        }
+    }
+ 
+    if (usedCheck) usedCheck.addEventListener('change', syncAll);
+    if (paidCheck) paidCheck.addEventListener('change', syncAll);
+});
+ 
+ 
+// ============================================================
+// E. CREATE PAGE — Live system date (ticks every second)
+// ============================================================
+function updateSystemDate() {
+    var el = document.getElementById('date_sis');
+    if (!el) return;
+    var now = new Date();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    el.value =
+        now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) +
+        ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+}
+updateSystemDate();
+setInterval(updateSystemDate, 1000);
+ 
+ 
+// ============================================================
+// F. INDEX PAGE — Tab strip, row selection, sort, filter,
+//                 preview modal
+//    Wrapped in IIFE; exits early if #financeTabs not found
+//    (i.e. on create page, this whole block does nothing)
 // ============================================================
 (function () {
     if (!document.getElementById('financeTabs')) return;
  
-    // ── tab config ───────────────────────────────────────────
-    const TABS = {
+    // ── Tab configuration ────────────────────────────────────
+    var TABS = {
         quotation: {
-            title:    'Quotation',
-            subtitle: 'Subject Fee records',
-            label:    'QUOTATION RECORD',
-            totalField: null,
+            title:      'Quotation',
+            subtitle:   'Subject Fee records',
+            label:      'QUOTATION RECORD',
+            totalField: null
         },
         invoice: {
-            title:    'Invoice',
-            subtitle: 'All invoice records',
-            label:    'PAYMENT RECEIPT',
-            totalField: 'total',
+            title:      'Invoice',
+            subtitle:   'All invoice records',
+            label:      'PAYMENT RECEIPT',
+            totalField: 'total'
         },
         payment: {
-            title:    'Payment',
-            subtitle: 'All payment transactions',
-            label:    'PAYMENT RECEIPT',
-            totalField: 'cash',
-        },
+            title:      'Payment',
+            subtitle:   'All payment transactions',
+            label:      'PAYMENT RECEIPT',
+            totalField: 'cash'
+        }
     };
  
-    // Preview field definitions per tab
-    const PREVIEW_FIELDS = {
+    var PREVIEW_FIELDS = {
         quotation: [
             ['Quotation ID',    'id'],
             ['Quotation Date',  'date'],
             ['Student ID',      'student'],
             ['Student Name',    'name'],
             ['Instalment',      'instalment'],
-            ['Instalment Date', 'idate'],
+            ['Instalment Date', 'idate']
         ],
         invoice: [
             ['Invoice ID',      'id'],
@@ -69,7 +167,7 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
             ['Quotation ID',    'quotation'],
             ['Instalment',      'instalment'],
             ['Quotation Date',  'qdate'],
-            ['Paid Status',     'status'],
+            ['Paid Status',     'status']
         ],
         payment: [
             ['Invoice ID',      'id'],
@@ -78,38 +176,34 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
             ['Card',            'card'],
             ['Cek/Giro ID',     'cek'],
             ['Amount (Cash)',   'cash'],
-            ['Amount (Card)',   'cardamt'],
-        ],
+            ['Amount (Card)',   'cardamt']
+        ]
     };
  
-    let activeTab     = null;
-    let selectedRows  = {};   // { tabName: <tr element> }
+    var activeTab    = null;
+    var selectedRows = {}; // { tabName: <tr> | null }
  
-    // ── helpers ──────────────────────────────────────────────
+    // ── Helpers ──────────────────────────────────────────────
     function getRows(tab) {
-        return Array.from(
-            document.querySelectorAll(`#panel-${tab} .fin-row`)
-        );
-    }
- 
-    function getActionBtns(tab) {
-        return document.querySelectorAll(`#actions-${tab} .inv-action-btn`);
+        return Array.from(document.querySelectorAll('#panel-' + tab + ' .fin-row'));
     }
  
     function setButtons(tab, enabled) {
-        getActionBtns(tab).forEach(b => b.disabled = !enabled);
+        document.querySelectorAll('#actions-' + tab + ' .inv-action-btn').forEach(function (b) {
+            b.disabled = !enabled;
+        });
     }
  
-    // ── row selection ────────────────────────────────────────
+    // ── Row selection ────────────────────────────────────────
     function selectRow(tab, row) {
-        const prev = selectedRows[tab];
+        var prev     = selectedRows[tab];
+        var labelEl  = document.querySelector('#panel-' + tab + ' .tab-selected-label');
+        var idEl     = document.querySelector('#panel-' + tab + ' .tab-selected-id');
+ 
         if (prev) prev.classList.remove('row-selected');
  
-        const labelEl = document.querySelector(`#panel-${tab} .tab-selected-label`);
-        const idEl    = document.querySelector(`#panel-${tab} .tab-selected-id`);
- 
         if (prev === row) {
-            // deselect
+            // clicking same row → deselect
             selectedRows[tab] = null;
             if (labelEl) labelEl.style.opacity = '0';
             setButtons(tab, false);
@@ -118,47 +212,50 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
  
         selectedRows[tab] = row;
         row.classList.add('row-selected');
-        if (idEl)    idEl.textContent     = row.dataset.id;
+        if (idEl)    idEl.textContent      = row.dataset.id || '';
         if (labelEl) labelEl.style.opacity = '1';
         setButtons(tab, true);
     }
  
     function bindRowClicks(tab) {
-        getRows(tab).forEach(row => {
-            row.addEventListener('click', () => selectRow(tab, row));
-            row.addEventListener('dblclick', () => {
+        getRows(tab).forEach(function (row) {
+            row.addEventListener('click', function () {
+                selectRow(tab, row);
+            });
+            row.addEventListener('dblclick', function () {
                 selectRow(tab, row);
                 openPreview(tab, row);
             });
         });
     }
  
-    // ── filter ───────────────────────────────────────────────
+    // ── Filter ───────────────────────────────────────────────
     function applyFilter(tab) {
-        const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
-        const from = document.getElementById('filterFrom')?.value || '';
-        const to   = document.getElementById('filterTo')?.value   || '';
+        var q        = (document.getElementById('searchInput') || {}).value || '';
+        var from     = (document.getElementById('filterFrom')  || {}).value || '';
+        var to       = (document.getElementById('filterTo')    || {}).value || '';
+        q = q.toLowerCase();
  
-        const emptyRow = document.getElementById(`${tab}Empty`);
-        const countEl  = document.querySelector(`#panel-${tab} .tab-row-count`);
-        const infoEl   = document.querySelector(`#panel-${tab} .tab-page-info`);
+        var emptyRow = document.getElementById(tab + 'Empty');
+        var countEl  = document.querySelector('#panel-' + tab + ' .tab-row-count');
+        var infoEl   = document.querySelector('#panel-' + tab + ' .tab-page-info');
+        var visible  = 0;
  
-        let visible = 0;
-        getRows(tab).forEach(row => {
-            const date = row.dataset.date || '';
-            const text = row.textContent.toLowerCase();
-            const show = (!q    || text.includes(q))
-                      && (!from || date >= from)
-                      && (!to   || date <= to);
+        getRows(tab).forEach(function (row) {
+            var date = row.dataset.date || '';
+            var text = row.textContent.toLowerCase();
+            var show = (!q    || text.includes(q))
+                    && (!from || date >= from)
+                    && (!to   || date <= to);
             row.style.display = show ? '' : 'none';
             if (show) visible++;
         });
  
-        // re-number
-        let n = 1;
-        getRows(tab).forEach(row => {
+        // Re-number visible rows
+        var n = 1;
+        getRows(tab).forEach(function (row) {
             if (row.style.display !== 'none') {
-                const num = row.querySelector('.row-num');
+                var num = row.querySelector('.row-num');
                 if (num) num.textContent = n++;
             }
         });
@@ -166,342 +263,191 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
         if (countEl)  countEl.textContent = visible;
         if (infoEl)   infoEl.textContent  =
-            `Showing ${visible} record${visible !== 1 ? 's' : ''}`;
+            'Showing ' + visible + ' record' + (visible !== 1 ? 's' : '');
     }
  
-    // ── sort ─────────────────────────────────────────────────
+    // ── Sort ─────────────────────────────────────────────────
     function bindSort(tab) {
-        let sortCol = -1, sortDir = 1;
-        const table = document.getElementById(`${tab}Table`);
+        var sortCol = -1, sortDir = 1;
+        var table   = document.getElementById(tab + 'Table');
         if (!table) return;
  
-        table.querySelectorAll('th.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const col = parseInt(th.dataset.col);
+        table.querySelectorAll('th.sortable').forEach(function (th) {
+            th.addEventListener('click', function () {
+                var col   = parseInt(th.dataset.col, 10);
+                var tbody = table.querySelector('tbody');
+                var emptyRow = document.getElementById(tab + 'Empty');
+ 
                 table.querySelectorAll('th.sortable')
-                     .forEach(h => h.classList.remove('sort-asc','sort-desc'));
+                     .forEach(function (h) { h.classList.remove('sort-asc', 'sort-desc'); });
+ 
                 sortDir = (sortCol === col) ? sortDir * -1 : 1;
                 sortCol = col;
                 th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
  
-                const tbody = table.querySelector('tbody');
-                const emptyRow = document.getElementById(`${tab}Empty`);
-                const rows = getRows(tab);
-                rows.sort((a, b) => {
-                    const aT = a.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
-                    const bT = b.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
-                    return aT.localeCompare(bT, undefined, { numeric: true }) * sortDir;
+                var rows = getRows(tab);
+                rows.sort(function (a, b) {
+                    var aT = (a.querySelectorAll('td')[col + 1] || {}).textContent || '';
+                    var bT = (b.querySelectorAll('td')[col + 1] || {}).textContent || '';
+                    return aT.trim().localeCompare(bT.trim(), undefined, { numeric: true }) * sortDir;
                 });
-                rows.forEach(r => tbody.appendChild(r));
+                rows.forEach(function (r) { tbody.appendChild(r); });
                 if (emptyRow) tbody.appendChild(emptyRow);
                 applyFilter(tab);
             });
         });
     }
  
-    // ── action buttons ───────────────────────────────────────
+    // ── Action buttons ───────────────────────────────────────
     function bindActions(tab) {
-        document.querySelectorAll(`#actions-${tab} .inv-action-btn`).forEach(btn => {
-            btn.addEventListener('click', () => {
-                const row = selectedRows[tab];
+        document.querySelectorAll('#actions-' + tab + ' .inv-action-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var row    = selectedRows[tab];
                 if (!row) return;
-                const action = btn.dataset.action;
-                const id = row.dataset.id;
+                var action = btn.dataset.action;
+                var id     = row.dataset.id;
  
                 if (action === 'preview') {
                     openPreview(tab, row);
                 } else if (action === 'edit') {
-                    window.location.href = `/finance/${tab}/${id}/edit`;
+                    window.location.href = '/finance/' + tab + '/' + id + '/edit';
                 } else if (action === 'cancel' || action === 'void') {
-                    if (confirm(`Cancel/void ${id}?\nThis action cannot be undone.`)) {
+                    if (confirm('Cancel/void ' + id + '?\nThis action cannot be undone.')) {
                         // TODO: POST /finance/{tab}/{id}/cancel
                     }
                 } else if (action === 'print') {
-                    openPreview(tab, row);   // preview then print from modal
+                    openPreview(tab, row); // open preview first; print from modal
                 }
             });
         });
     }
  
-    // ── preview modal ────────────────────────────────────────
+    // ── Preview modal ────────────────────────────────────────
     function openPreview(tab, row) {
-        const cfg    = TABS[tab];
-        const fields = PREVIEW_FIELDS[tab];
-        const d      = row.dataset;
+        var cfg    = TABS[tab];
+        var fields = PREVIEW_FIELDS[tab];
+        var d      = row.dataset;
  
-        document.getElementById('previewModalTitle').textContent    = cfg.label;
-        document.getElementById('previewModalSubtitle').textContent = d.id || '—';
-        document.getElementById('receiptTypeLabel').textContent     = cfg.label;
+        var titleEl    = document.getElementById('previewModalTitle');
+        var subtitleEl = document.getElementById('previewModalSubtitle');
+        var labelEl    = document.getElementById('receiptTypeLabel');
+        var totalEl    = document.getElementById('prev_total');
+        var container  = document.getElementById('receiptFields');
  
-        // Build field grid
-        const container = document.getElementById('receiptFields');
-        let html = '<div class="row g-0">';
-        fields.forEach(([label, key], i) => {
-            let val = d[key] || '—';
-            // Special rendering
+        if (titleEl)    titleEl.textContent    = cfg.label;
+        if (subtitleEl) subtitleEl.textContent = d.id || '—';
+        if (labelEl)    labelEl.textContent    = cfg.label;
+ 
+        // Build two-column field grid
+        var html = '<div class="row g-0">';
+        fields.forEach(function (pair, i) {
+            var label = pair[0];
+            var key   = pair[1];
+            var val   = d[key] || '—';
+ 
             if (key === 'status') {
-                const cls = val === 'Paid' ? 'status-paid' : 'status-unpaid';
-                val = `<span class="status-badge ${cls}">${val}</span>`;
+                var cls = (val === 'Paid') ? 'status-paid' : 'status-unpaid';
+                val = '<span class="status-badge ' + cls + '">' + val + '</span>';
             }
+ 
             if (i % 2 === 0) html += '<div class="col-6"><table style="width:100%;border:none;">';
-            html += `<tr>
-                <td style="width:115px;color:#555;padding:2px 0;">${label}</td>
-                <td style="color:#111;">: ${val}</td>
-            </tr>`;
+            html += '<tr>' +
+                '<td style="width:115px;color:#555;padding:2px 0;">' + label + '</td>' +
+                '<td style="color:#111;">: ' + val + '</td>' +
+                '</tr>';
             if (i % 2 === 1 || i === fields.length - 1) html += '</table></div>';
         });
         html += '</div>';
-        container.innerHTML = html;
+        if (container) container.innerHTML = html;
  
-        // Total row
-        const totalEl = document.getElementById('prev_total');
-        if (cfg.totalField && d[cfg.totalField]) {
-            totalEl.textContent = 'Rp ' + d[cfg.totalField];
-        } else {
-            totalEl.textContent = '—';
+        if (totalEl) {
+            totalEl.textContent = (cfg.totalField && d[cfg.totalField])
+                ? 'Rp ' + d[cfg.totalField]
+                : '—';
         }
  
-        new bootstrap.Modal(document.getElementById('previewModal')).show();
+        var modalEl = document.getElementById('previewModal');
+        if (modalEl) new bootstrap.Modal(modalEl).show();
     }
  
-    document.getElementById('btnPrintFromModal')?.addEventListener('click', () => window.print());
+    var btnPrintModal = document.getElementById('btnPrintFromModal');
+    if (btnPrintModal) {
+        btnPrintModal.addEventListener('click', function () { window.print(); });
+    }
  
-    // ── tab switching ────────────────────────────────────────
+    // ── Tab switching ────────────────────────────────────────
     function activateTab(tab) {
         activeTab = tab;
-        const cfg = TABS[tab];
+        var cfg   = TABS[tab];
  
-        // Tabs
-        document.querySelectorAll('.fin-tab').forEach(btn => {
+        // Tab buttons
+        document.querySelectorAll('.fin-tab').forEach(function (btn) {
             btn.classList.toggle('active', btn.dataset.tab === tab);
         });
  
         // Panels
-        document.querySelectorAll('.fin-tab-panel').forEach(p => p.style.display = 'none');
-        document.getElementById(`panel-${tab}`).style.display = 'block';
+        document.querySelectorAll('.fin-tab-panel').forEach(function (p) {
+            p.style.display = 'none';
+        });
+        var panel = document.getElementById('panel-' + tab);
+        if (panel) panel.style.display = 'block';
  
-        // Top buttons
-        document.querySelectorAll('.tab-topbar').forEach(b => b.style.display = 'none');
-        document.getElementById(`topbar-${tab}`).style.display = '';
+        // Top-right buttons
+        document.querySelectorAll('.tab-topbar').forEach(function (b) {
+            b.style.display = 'none';
+        });
+        var topbar = document.getElementById('topbar-' + tab);
+        if (topbar) topbar.style.display = '';
  
         // Bottom action buttons
-        document.querySelectorAll('.tab-actions').forEach(a => a.style.setProperty('display','none','important'));
-        document.getElementById(`actions-${tab}`).style.removeProperty('display');
+        document.querySelectorAll('.tab-actions').forEach(function (a) {
+            a.style.setProperty('display', 'none', 'important');
+        });
+        var actions = document.getElementById('actions-' + tab);
+        if (actions) actions.style.removeProperty('display');
  
-        // Page title
-        document.getElementById('pageTitle').textContent    = cfg.title;
-        document.getElementById('pageSubtitle').textContent = cfg.subtitle;
+        // Page title/subtitle
+        var titleEl    = document.getElementById('pageTitle');
+        var subtitleEl = document.getElementById('pageSubtitle');
+        if (titleEl)    titleEl.textContent    = cfg.title;
+        if (subtitleEl) subtitleEl.textContent = cfg.subtitle;
  
-        // Restore button state for this tab
+        // Restore button state
         setButtons(tab, !!selectedRows[tab]);
  
-        // Run filter with current search values
+        // Refresh filter counts
         applyFilter(tab);
     }
  
-    // ── init ─────────────────────────────────────────────────
-    Object.keys(TABS).forEach(tab => {
+    // ── Init ─────────────────────────────────────────────────
+    Object.keys(TABS).forEach(function (tab) {
         bindRowClicks(tab);
         bindSort(tab);
         bindActions(tab);
     });
  
-    document.querySelectorAll('.fin-tab').forEach(btn => {
-        btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+    document.querySelectorAll('.fin-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            activateTab(btn.dataset.tab);
+        });
     });
  
-    // Search & filter listeners
-    const searchInput = document.getElementById('searchInput');
-    const filterFrom  = document.getElementById('filterFrom');
-    const filterTo    = document.getElementById('filterTo');
-    const clearBtn    = document.getElementById('clearFilter');
+    var searchInput = document.getElementById('searchInput');
+    var filterFrom  = document.getElementById('filterFrom');
+    var filterTo    = document.getElementById('filterTo');
+    var clearBtn    = document.getElementById('clearFilter');
  
-    searchInput?.addEventListener('input',  () => { if (activeTab) applyFilter(activeTab); });
-    filterFrom ?.addEventListener('change', () => { if (activeTab) applyFilter(activeTab); });
-    filterTo   ?.addEventListener('change', () => { if (activeTab) applyFilter(activeTab); });
-    clearBtn   ?.addEventListener('click',  () => {
+    if (searchInput) searchInput.addEventListener('input',  function () { if (activeTab) applyFilter(activeTab); });
+    if (filterFrom)  filterFrom.addEventListener('change',  function () { if (activeTab) applyFilter(activeTab); });
+    if (filterTo)    filterTo.addEventListener('change',    function () { if (activeTab) applyFilter(activeTab); });
+    if (clearBtn)    clearBtn.addEventListener('click', function () {
         if (searchInput) searchInput.value = '';
         if (filterFrom)  filterFrom.value  = '';
         if (filterTo)    filterTo.value    = '';
         if (activeTab)   applyFilter(activeTab);
     });
  
-    // Default: open Quotation tab
+    // Open Quotation tab by default
     activateTab('quotation');
  
 })();
-
-    if (tbody) {
-        tbody.addEventListener('click', (event) => {
-            const row = event.target.closest('tr.inv-row');
-            if (row) selectRow(row);
-        });
-
-        tbody.addEventListener('dblclick', (event) => {
-            const row = event.target.closest('tr.inv-row');
-            if (row) {
-                selectRow(row);
-                openPreview(row);
-            }
-        });
-    }
-
-    if (btnPreview) {
-        btnPreview.addEventListener('click', () => {
-            const targetRow = selectedRow || dataRows().find(row => row.style.display !== 'none');
-            if (targetRow) openPreview(targetRow);
-        });
-    }
-
-    if (btnPrintModal) {
-        btnPrintModal.addEventListener('click', () => {
-            window.print();
-        });
-    }
-
-    if (btnEdit) btnEdit.addEventListener('click', () => {
-        if (selectedRow) window.location.href = `/finance/${selectedRow.dataset.id}/edit`;
-    });
-
-    if (btnPrint) btnPrint.addEventListener('click', () => {
-        const targetRow = selectedRow || dataRows().find(row => row.style.display !== 'none');
-        if (targetRow) openPreview(targetRow);
-    });
-
-    if (btnCancel) btnCancel.addEventListener('click', () => {
-        if (!selectedRow) return;
-        if (confirm(`Cancel invoice ${selectedRow.dataset.id}?\nThis action cannot be undone.`)) {
-            // TODO: POST /finance/{id}/cancel
-        }
-    });
-
-    function applyFilter() {
-        const q    = (searchInput?.value || '').toLowerCase();
-        const from = filterFrom?.value || '';
-        const to   = filterTo?.value   || '';
-        let visible = 0;
-
-        dataRows().forEach(row => {
-            const invDate = row.dataset.date || '';
-            const text    = row.textContent.toLowerCase();
-
-            const show = (!q    || text.includes(q))
-                      && (!from || invDate >= from)
-                      && (!to   || invDate <= to);
-
-            row.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-
-        let n = 1;
-        dataRows().forEach(row => {
-            if (row.style.display !== 'none') {
-                const numCell = row.querySelector('.row-num');
-                if (numCell) numCell.textContent = n++;
-            }
-        });
-
-        if (emptyRow) emptyRow.classList.toggle('d-none', visible > 0);
-        if (rowCountEl) rowCountEl.textContent = visible;
-        if (pageInfo) pageInfo.textContent = `Showing ${visible} record${visible !== 1 ? 's' : ''}`;
-    }
-
-    table.querySelectorAll('th.sortable').forEach(th => {
-        th.addEventListener('click', () => {
-            const col = parseInt(th.dataset.col);
-            table.querySelectorAll('th.sortable').forEach(h => h.classList.remove('sort-asc','sort-desc'));
-            sortDir = (sortCol === col) ? sortDir * -1 : 1;
-            sortCol = col;
-            th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
-
-            const rows = dataRows();
-            rows.sort((a, b) => {
-                const aT = a.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
-                const bT = b.querySelectorAll('td')[col + 1]?.textContent.trim() || '';
-                return aT.localeCompare(bT, undefined, { numeric: true }) * sortDir;
-            });
-            rows.forEach(r => tbody.appendChild(r));
-            if (emptyRow) tbody.appendChild(emptyRow);
-            applyFilter();
-        });
-    });
-
-    searchInput?.addEventListener('input', applyFilter);
-    filterFrom ?.addEventListener('change', applyFilter);
-    filterTo   ?.addEventListener('change', applyFilter);
-    clearBtn   ?.addEventListener('click', () => {
-        if (searchInput) searchInput.value = '';
-        if (filterFrom)  filterFrom.value  = '';
-        if (filterTo)    filterTo.value    = '';
-        applyFilter();
-    });
-
-    applyFilter();
-})();
- 
- 
-// ============================================================
-// RICHBOX 1: Invoice table — "Paid Off" checkbox behaviour
-// When checked  → disable the Pay input, dim the row
-// When unchecked → re-enable the Pay input, restore row
-// ============================================================
-document.querySelectorAll('.paid-check').forEach((checkbox) => {
-    checkbox.addEventListener('change', function () {
-        const row = this.closest('tr');
-        const payInput = row.querySelector('.pay-input');
- 
-        if (this.checked) {
-            row.classList.add('richbox-row-muted');
-            if (payInput) {
-                payInput.disabled = true;
-                payInput.placeholder = '–';
-            }
-        } else {
-            row.classList.remove('richbox-row-muted');
-            if (payInput) {
-                payInput.disabled = false;
-                payInput.placeholder = '0';
-            }
-        }
-    });
-});
- 
- 
-// ============================================================
-// RICHBOX 2: Discount table — "Used" checkbox behaviour
-// When checked  → dim the row to indicate discount applied
-// When unchecked → restore the row
-// ============================================================
-document.querySelectorAll('.disc-check').forEach((checkbox) => {
-    checkbox.addEventListener('change', function () {
-        const row = this.closest('tr');
-        if (this.checked) {
-            row.classList.add('richbox-row-muted');
-        } else {
-            row.classList.remove('richbox-row-muted');
-        }
-    });
- 
-    // Apply initial state on page load
-    if (checkbox.checked && !checkbox.disabled) {
-        checkbox.closest('tr').classList.add('richbox-row-muted');
-    }
-});
-
- 
-// ============================================================
-// Live System Date — updates every second without page reload
-// ============================================================
-function updateSystemDate() {
-    const el = document.getElementById('date_sis');
-    if (!el) return;
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const formatted =
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
-        `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    el.value = formatted;
-}
- 
-updateSystemDate();
-setInterval(updateSystemDate, 1000);
