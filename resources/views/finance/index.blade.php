@@ -9,7 +9,7 @@
     <h3>Finance Module</h3>
     <hr>
  
-    {{-- ── Top bar: dynamic title + dynamic top button(s) ─────── --}}
+    {{-- ══ TOP BAR ══════════════════════════════════════════════════ --}}
     <div class="d-flex align-items-start justify-content-between mb-2">
         <div>
             <h5 class="mb-0 fw-bold" id="pageTitle">Invoice</h5>
@@ -24,8 +24,8 @@
             </a>
         </div>
         <div id="topbar-invoice" style="display:none;">
-            <a href="{{ route('finance.create') }}" class="btn btn-sm btn-dark">
-                <i class="bi bi-plus-lg me-1"></i> New Payment
+            <a href="#" class="btn btn-sm btn-dark">
+                <i class="bi bi-plus-lg me-1"></i> New Invoice
             </a>
         </div>
         <div id="topbar-payment" style="display:none;">
@@ -35,7 +35,7 @@
         </div>
     </div>
  
-    {{-- ── Tab strip ──────────────────────────────────────────────── --}}
+    {{-- ══ TAB STRIP ════════════════════════════════════════════════ --}}
     <div class="finance-tabs" id="financeTabs">
         <button class="fin-tab" data-tab="quotation">
             <i class="bi bi-file-text me-1"></i> Quotation
@@ -48,7 +48,7 @@
         </button>
     </div>
  
-    {{-- ── Search & Filter (shared) ───────────────────────────────── --}}
+    {{-- ══ SEARCH & FILTER ══════════════════════════════════════════ --}}
     <div class="d-flex gap-2 mt-2 mb-2">
         <div class="input-group input-group-sm" style="max-width:320px;">
             <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
@@ -66,7 +66,9 @@
  
  
     {{-- ════════════════════════════════════════════════════════════
-         PANEL: QUOTATION
+         PANEL 1: QUOTATION (Subject_Fee)
+         Columns: Quotation Date | Quotation ID | Student ID |
+                  Student Name | Instalment Name | Instalment Date
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-quotation" style="display:none;">
         <div class="richbox richbox-fullwidth">
@@ -84,19 +86,52 @@
                     <thead>
                         <tr>
                             <th style="width:38px;">#</th>
-                            <th class="sortable" data-col="0" style="width:140px;">Quotation ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="1" style="width:110px;">Quotation Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="2" style="width:130px;">Student ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="0" style="width:110px;">Quotation Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="1" style="width:140px;">Quotation ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="2" style="width:120px;">Student ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="3">Student Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="4">Instalment Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="5" style="width:110px;">Instalment Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         </tr>
                     </thead>
                     <tbody id="quotationBody">
+ 
+                        {{--
+                        DB Query (FinanceController@index):
+                        ─────────────────────────────────────────────────────
+                        $quotations = DB::table('Subject_Fee as sf')
+                            ->join('Student as s',           'sf.Student_Student_ID',              '=', 's.Student_ID')
+                            ->join('Installment_Offer as io', 'sf.Installment_Offer_Installment_ID', '=', 'io.Installment_ID')
+                            ->select([
+                                'sf.Quotation_ID',
+                                'sf.Quotation_Date',
+                                's.Student_ID',
+                                's.Student_Name',
+                                'io.Installment_Name',
+                                'io.Installment_Date',
+                            ])
+                            ->orderByDesc('sf.Quotation_Date')
+                            ->get();
+ 
+                        Blade loop:
+                        @foreach($quotations as $i => $q)
+                        <tr class="qt-row" data-date="{{ \Carbon\Carbon::parse($q->Quotation_Date)->format('Y-m-d') }}">
+                            <td class="row-num text-muted">{{ $i + 1 }}</td>
+                            <td>{{ \Carbon\Carbon::parse($q->Quotation_Date)->format('Y-m-d') }}</td>
+                            <td class="fw-semibold">{{ $q->Quotation_ID }}</td>
+                            <td class="text-muted">{{ $q->Student_ID }}</td>
+                            <td>{{ $q->Student_Name }}</td>
+                            <td>{{ $q->Installment_Name }}</td>
+                            <td>{{ \Carbon\Carbon::parse($q->Installment_Date)->format('Y-m-d') }}</td>
+                        </tr>
+                        @endforeach
+                        --}}
+ 
+                        {{-- Dummy rows --}}
                         <tr class="qt-row" data-date="2024-01-10">
                             <td class="row-num text-muted">1</td>
-                            <td class="fw-semibold">QT-2024-001</td>
                             <td>2024-01-10</td>
+                            <td class="fw-semibold">QT-2024-001</td>
                             <td class="text-muted">STD-0042</td>
                             <td>Andi Pratama</td>
                             <td>SPP Semester 1</td>
@@ -104,8 +139,8 @@
                         </tr>
                         <tr class="qt-row" data-date="2024-02-20">
                             <td class="row-num text-muted">2</td>
-                            <td class="fw-semibold">QT-2024-002</td>
                             <td>2024-02-20</td>
+                            <td class="fw-semibold">QT-2024-002</td>
                             <td class="text-muted">STD-0017</td>
                             <td>Budi Santoso</td>
                             <td>Biaya Buku Paket</td>
@@ -113,13 +148,14 @@
                         </tr>
                         <tr class="qt-row" data-date="2024-03-25">
                             <td class="row-num text-muted">3</td>
-                            <td class="fw-semibold">QT-2024-003</td>
                             <td>2024-03-25</td>
+                            <td class="fw-semibold">QT-2024-003</td>
                             <td class="text-muted">STD-0055</td>
                             <td>Citra Dewi</td>
                             <td>UTS Semester 1</td>
                             <td>2024-03-20</td>
                         </tr>
+ 
                         <tr id="qtEmptyRow" class="d-none">
                             <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No quotation records found.
@@ -136,7 +172,10 @@
  
  
     {{-- ════════════════════════════════════════════════════════════
-         PANEL: INVOICE  ← original working richbox, IDs untouched
+         PANEL 2: INVOICE
+         Columns: Invoice Date | Invoice ID | Quotation ID |
+                  Student Name | Term | Description |
+                  Total Paid | Status
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-invoice">
         <div class="richbox richbox-fullwidth" id="invoiceBox">
@@ -153,63 +192,128 @@
                     <thead>
                         <tr>
                             <th style="width:38px;">#</th>
-                            <th class="sortable" data-col="0" style="width:145px;">Invoice ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="1" style="width:110px;">Invoice Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="2" style="width:145px;">Quotation ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="0" style="width:110px;">Invoice Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="1" style="width:145px;">Invoice ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="2" style="width:140px;">Quotation ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="3">Student Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="4" style="width:80px;">Term <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="5">Description <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th style="width:120px;" class="text-end">Total Paid</th>
-                            <th class="sortable" data-col="3">Instalment Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="4" style="width:110px;">Quotation Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th style="width:90px;" class="text-center">Paid Status</th>
+                            <th style="width:90px;" class="text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody id="invoiceBody">
  
-                        {{-- @foreach($invoices as $i => $inv)
+                        {{--
+                        DB Query (FinanceController@index):
+                        ─────────────────────────────────────────────────────
+                        $invoices = DB::table('Invoice as inv')
+                            ->join('Subject_Fee as sf',        'inv.Subject_Fee_Quotation_ID',        '=', 'sf.Quotation_ID')
+                            ->join('Student as s',             'sf.Student_Student_ID',               '=', 's.Student_ID')
+                            ->join('Installment_Offer as io',  'sf.Installment_Offer_Installment_ID', '=', 'io.Installment_ID')
+                            ->leftJoin('Class as cl',          's.Student_ID',                        '=', 'cl.Student_ID')
+                            ->select([
+                                'inv.Invoice_ID',
+                                'inv.Invoice_Date',
+                                'inv.Paid_Status',
+                                'inv.total_paid',
+                                'sf.Quotation_ID',
+                                's.Student_Name',
+                                'cl.Term',
+                                'io.Installment_Name',
+                            ])
+                            ->orderByDesc('inv.Invoice_Date')
+                            ->get();
+ 
+                        Blade loop:
+                        @foreach($invoices as $i => $inv)
                         <tr class="inv-row"
                             data-id="{{ $inv->Invoice_ID }}"
                             data-date="{{ \Carbon\Carbon::parse($inv->Invoice_Date)->format('Y-m-d') }}"
                             data-quotation="{{ $inv->Quotation_ID }}"
                             data-instalment="{{ $inv->Installment_Name }}"
-                            data-qdate="{{ \Carbon\Carbon::parse($inv->Quotation_Date)->format('Y-m-d') }}"
-                            data-total="{{ number_format($inv->Total_Paid, 0, ',', '.') }}"
+                            data-qdate="{{ \Carbon\Carbon::parse($inv->Quotation_Date ?? $inv->Invoice_Date)->format('Y-m-d') }}"
+                            data-total="{{ number_format($inv->total_paid, 0, ',', '.') }}"
                             data-status="{{ $inv->Paid_Status ? 'Paid' : 'Unpaid' }}">
                             <td class="row-num text-muted">{{ $i + 1 }}</td>
-                            <td class="fw-semibold">{{ $inv->Invoice_ID }}</td>
                             <td>{{ \Carbon\Carbon::parse($inv->Invoice_Date)->format('Y-m-d') }}</td>
+                            <td class="fw-semibold">{{ $inv->Invoice_ID }}</td>
                             <td class="text-muted">{{ $inv->Quotation_ID }}</td>
-                            <td class="text-end fw-semibold">Rp {{ number_format($inv->Total_Paid, 0, ',', '.') }}</td>
-                            <td>{{ $inv->Installment_Name }}</td>
-                            <td>{{ \Carbon\Carbon::parse($inv->Quotation_Date)->format('Y-m-d') }}</td>
+                            <td>{{ $inv->Student_Name }}</td>
+                            <td class="text-center">{{ $inv->Term ?? '—' }}</td>
+                            <td class="text-muted">{{ $inv->Installment_Name }}</td>
+                            <td class="text-end fw-semibold">Rp {{ number_format($inv->total_paid, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <span class="status-badge {{ $inv->Paid_Status ? 'status-paid' : 'status-unpaid' }}">
                                     {{ $inv->Paid_Status ? 'Paid' : 'Unpaid' }}
                                 </span>
                             </td>
                         </tr>
-                        @endforeach --}}
+                        @endforeach
+                        --}}
  
+                        {{-- Dummy rows --}}
                         <tr class="inv-row" data-id="INV-2024-0001" data-date="2024-01-15" data-quotation="QT-2024-001" data-instalment="SPP Semester 1" data-qdate="2024-01-10" data-total="1.500.000" data-status="Paid">
-                            <td class="row-num text-muted">1</td><td class="fw-semibold">INV-2024-0001</td><td>2024-01-15</td><td class="text-muted">QT-2024-001</td><td class="text-end fw-semibold">Rp 1.500.000</td><td>SPP Semester 1</td><td>2024-01-10</td><td class="text-center"><span class="status-badge status-paid">Paid</span></td>
+                            <td class="row-num text-muted">1</td>
+                            <td>2024-01-15</td>
+                            <td class="fw-semibold">INV-2024-0001</td>
+                            <td class="text-muted">QT-2024-001</td>
+                            <td>Andi Pratama</td>
+                            <td class="text-center">1</td>
+                            <td class="text-muted">SPP Semester 1</td>
+                            <td class="text-end fw-semibold">Rp 1.500.000</td>
+                            <td class="text-center"><span class="status-badge status-paid">Paid</span></td>
                         </tr>
-                        <tr class="inv-row" data-id="INV-2024-0002" data-date="2024-02-15" data-quotation="QT-2024-001" data-instalment="SPP Semester 1" data-qdate="2024-01-10" data-total="300.000" data-status="Paid">
-                            <td class="row-num text-muted">2</td><td class="fw-semibold">INV-2024-0002</td><td>2024-02-15</td><td class="text-muted">QT-2024-001</td><td class="text-end fw-semibold">Rp 300.000</td><td>SPP Semester 1</td><td>2024-01-10</td><td class="text-center"><span class="status-badge status-paid">Paid</span></td>
+                        <tr class="inv-row" data-id="INV-2024-0002" data-date="2024-02-15" data-quotation="QT-2024-001" data-instalment="SPP Semester 1" data-qdate="2024-01-10" data-total="300.000" data-status="Unpaid">
+                            <td class="row-num text-muted">2</td>
+                            <td>2024-02-15</td>
+                            <td class="fw-semibold">INV-2024-0002</td>
+                            <td class="text-muted">QT-2024-001</td>
+                            <td>Andi Pratama</td>
+                            <td class="text-center">1</td>
+                            <td class="text-muted">SPP Semester 1</td>
+                            <td class="text-end fw-semibold">Rp 300.000</td>
+                            <td class="text-center"><span class="status-badge status-unpaid">Unpaid</span></td>
                         </tr>
                         <tr class="inv-row" data-id="INV-2024-0003" data-date="2024-03-01" data-quotation="QT-2024-002" data-instalment="Biaya Buku Paket" data-qdate="2024-02-20" data-total="450.000" data-status="Paid">
-                            <td class="row-num text-muted">3</td><td class="fw-semibold">INV-2024-0003</td><td>2024-03-01</td><td class="text-muted">QT-2024-002</td><td class="text-end fw-semibold">Rp 450.000</td><td>Biaya Buku Paket</td><td>2024-02-20</td><td class="text-center"><span class="status-badge status-paid">Paid</span></td>
+                            <td class="row-num text-muted">3</td>
+                            <td>2024-03-01</td>
+                            <td class="fw-semibold">INV-2024-0003</td>
+                            <td class="text-muted">QT-2024-002</td>
+                            <td>Budi Santoso</td>
+                            <td class="text-center">2</td>
+                            <td class="text-muted">Biaya Buku Paket</td>
+                            <td class="text-end fw-semibold">Rp 450.000</td>
+                            <td class="text-center"><span class="status-badge status-paid">Paid</span></td>
                         </tr>
                         <tr class="inv-row" data-id="INV-2024-0004" data-date="2024-04-10" data-quotation="QT-2024-003" data-instalment="UTS Semester 1" data-qdate="2024-03-25" data-total="750.000" data-status="Paid">
-                            <td class="row-num text-muted">4</td><td class="fw-semibold">INV-2024-0004</td><td>2024-04-10</td><td class="text-muted">QT-2024-003</td><td class="text-end fw-semibold">Rp 750.000</td><td>UTS Semester 1</td><td>2024-03-25</td><td class="text-center"><span class="status-badge status-paid">Paid</span></td>
+                            <td class="row-num text-muted">4</td>
+                            <td>2024-04-10</td>
+                            <td class="fw-semibold">INV-2024-0004</td>
+                            <td class="text-muted">QT-2024-003</td>
+                            <td>Citra Dewi</td>
+                            <td class="text-center">1</td>
+                            <td class="text-muted">UTS Semester 1</td>
+                            <td class="text-end fw-semibold">Rp 750.000</td>
+                            <td class="text-center"><span class="status-badge status-paid">Paid</span></td>
                         </tr>
                         <tr class="inv-row" data-id="INV-2024-0005" data-date="2024-05-05" data-quotation="QT-2024-004" data-instalment="Biaya Seragam" data-qdate="2024-04-28" data-total="600.000" data-status="Paid">
-                            <td class="row-num text-muted">5</td><td class="fw-semibold">INV-2024-0005</td><td>2024-05-05</td><td class="text-muted">QT-2024-004</td><td class="text-end fw-semibold">Rp 600.000</td><td>Biaya Seragam</td><td>2024-04-28</td><td class="text-center"><span class="status-badge status-paid">Paid</span></td>
+                            <td class="row-num text-muted">5</td>
+                            <td>2024-05-05</td>
+                            <td class="fw-semibold">INV-2024-0005</td>
+                            <td class="text-muted">QT-2024-004</td>
+                            <td>Citra Dewi</td>
+                            <td class="text-center">2</td>
+                            <td class="text-muted">Biaya Seragam</td>
+                            <td class="text-end fw-semibold">Rp 600.000</td>
+                            <td class="text-center"><span class="status-badge status-paid">Paid</span></td>
                         </tr>
  
                         <tr id="emptyRow" class="d-none">
-                            <td colspan="8" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox me-1"></i> No paid invoices found.
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox me-1"></i> No invoice records found.
                             </td>
                         </tr>
- 
                     </tbody>
                 </table>
             </div>
@@ -222,7 +326,10 @@
  
  
     {{-- ════════════════════════════════════════════════════════════
-         PANEL: PAYMENT
+         PANEL 3: PAYMENT
+         Columns: Invoice ID | Total Paid | Payment Date |
+                  Description | Deposit ID | Card |
+                  Cek/Giro ID | Amount (Cash) | Amount (Card)
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-payment" style="display:none;">
         <div class="richbox richbox-fullwidth">
@@ -241,41 +348,99 @@
                         <tr>
                             <th style="width:38px;">#</th>
                             <th class="sortable" data-col="0" style="width:145px;">Invoice ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="1" style="width:120px;">Method <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="2" style="width:130px;">Deposit ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="3" style="width:120px;">Card <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="4" style="width:130px;">Cek/Giro ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th style="width:120px;" class="text-end">Amount (Cash)</th>
-                            <th style="width:120px;" class="text-end">Amount (Card)</th>
+                            <th class="sortable" data-col="1" style="width:120px;" class="text-end">Total Paid <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="2" style="width:115px;">Payment Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="3">Description <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="4" style="width:120px;">Deposit ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="5" style="width:100px;">Card <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="6" style="width:120px;">Cek/Giro ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th style="width:115px;" class="text-end">Amount (Cash)</th>
+                            <th style="width:115px;" class="text-end">Amount (Card)</th>
                         </tr>
                     </thead>
                     <tbody id="paymentBody">
-                        <tr class="py-row" data-date="">
+ 
+                        {{--
+                        DB Query (FinanceController@index):
+                        ─────────────────────────────────────────────────────
+                        $payments = DB::table('Payment as pay')
+                            ->join('Invoice as inv',           'pay.Invoice_ID',                      '=', 'inv.Invoice_ID')
+                            ->join('Subject_Fee as sf',        'inv.Subject_Fee_Quotation_ID',        '=', 'sf.Quotation_ID')
+                            ->join('Installment_Offer as io',  'sf.Installment_Offer_Installment_ID', '=', 'io.Installment_ID')
+                            ->leftJoin('Deposit as dep',       'pay.Deposit_ID',                      '=', 'dep.Deposit_ID')
+                            ->leftJoin('Card as card',         'pay.Card_ID',                         '=', 'card.Card_ID')
+                            ->leftJoin('Cek_Giro as cg',       'pay.Cek_Giro_Cek_ID',                '=', 'cg.Cek_ID')
+                            ->select([
+                                'pay.Invoice_ID',
+                                'pay.Payment_Date',
+                                'pay.Amount_Cash',
+                                'pay.Amount_Card',
+                                'pay.Deposit_ID',
+                                'inv.total_paid',
+                                'io.Installment_Name',
+                                'card.Card_Nama',
+                                'cg.Cek_ID',
+                            ])
+                            ->orderByDesc('pay.Payment_Date')
+                            ->get();
+ 
+                        Blade loop:
+                        @foreach($payments as $i => $pay)
+                        <tr class="py-row" data-date="{{ $pay->Payment_Date ? \Carbon\Carbon::parse($pay->Payment_Date)->format('Y-m-d') : '' }}">
+                            <td class="row-num text-muted">{{ $i + 1 }}</td>
+                            <td class="fw-semibold">{{ $pay->Invoice_ID }}</td>
+                            <td class="text-end fw-semibold">Rp {{ number_format($pay->total_paid, 0, ',', '.') }}</td>
+                            <td>{{ $pay->Payment_Date ? \Carbon\Carbon::parse($pay->Payment_Date)->format('Y-m-d') : '—' }}</td>
+                            <td class="text-muted">{{ $pay->Installment_Name }}</td>
+                            <td class="text-muted">{{ $pay->Deposit_ID ?? '—' }}</td>
+                            <td class="text-muted">{{ $pay->Card_Nama ?? '—' }}</td>
+                            <td class="text-muted">{{ $pay->Cek_ID ?? '—' }}</td>
+                            <td class="text-end">{{ $pay->Amount_Cash ? 'Rp '.number_format($pay->Amount_Cash, 0, ',', '.') : '—' }}</td>
+                            <td class="text-end">{{ $pay->Amount_Card ? 'Rp '.number_format($pay->Amount_Card, 0, ',', '.') : '—' }}</td>
+                        </tr>
+                        @endforeach
+                        --}}
+ 
+                        {{-- Dummy rows --}}
+                        <tr class="py-row" data-date="2024-01-16">
                             <td class="row-num text-muted">1</td>
                             <td class="fw-semibold">INV-2024-0001</td>
-                            <td><span class="richbox-badge badge-green">Cash</span></td>
-                            <td class="text-muted">—</td><td class="text-muted">—</td><td class="text-muted">—</td>
+                            <td class="text-end fw-semibold">Rp 1.500.000</td>
+                            <td>2024-01-16</td>
+                            <td class="text-muted">SPP Semester 1</td>
+                            <td class="text-muted">—</td>
+                            <td class="text-muted">—</td>
+                            <td class="text-muted">—</td>
                             <td class="text-end fw-semibold">Rp 1.500.000</td>
                             <td class="text-end text-muted">—</td>
                         </tr>
-                        <tr class="py-row" data-date="">
+                        <tr class="py-row" data-date="2024-03-02">
                             <td class="row-num text-muted">2</td>
                             <td class="fw-semibold">INV-2024-0003</td>
-                            <td><span class="richbox-badge badge-blue">Card</span></td>
-                            <td class="text-muted">—</td><td class="text-muted">Visa</td><td class="text-muted">—</td>
+                            <td class="text-end fw-semibold">Rp 450.000</td>
+                            <td>2024-03-02</td>
+                            <td class="text-muted">Biaya Buku Paket</td>
+                            <td class="text-muted">—</td>
+                            <td class="text-muted">Visa</td>
+                            <td class="text-muted">—</td>
                             <td class="text-end text-muted">—</td>
                             <td class="text-end fw-semibold">Rp 450.000</td>
                         </tr>
-                        <tr class="py-row" data-date="">
+                        <tr class="py-row" data-date="2024-04-11">
                             <td class="row-num text-muted">3</td>
                             <td class="fw-semibold">INV-2024-0004</td>
-                            <td><span class="richbox-badge">Giro</span></td>
-                            <td class="text-muted">—</td><td class="text-muted">—</td><td class="text-muted">GR-0098231</td>
+                            <td class="text-end fw-semibold">Rp 750.000</td>
+                            <td>2024-04-11</td>
+                            <td class="text-muted">UTS Semester 1</td>
+                            <td class="text-muted">—</td>
+                            <td class="text-muted">—</td>
+                            <td class="text-muted">GR-0098231</td>
                             <td class="text-end text-muted">—</td>
                             <td class="text-end text-muted">—</td>
                         </tr>
+ 
                         <tr id="pyEmptyRow" class="d-none">
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="10" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No payment records found.
                             </td>
                         </tr>
@@ -289,7 +454,9 @@
     </div>
  
  
-    {{-- ── Action buttons — invoice tab (original, IDs untouched) ── --}}
+    {{-- ══ ACTION BUTTONS ═══════════════════════════════════════════ --}}
+ 
+    {{-- Invoice actions (original IDs kept) --}}
     <div id="actions-invoice" class="d-flex gap-2 mt-3">
         <button class="btn btn-sm btn-outline-warning inv-action-btn" id="btnPreview">
             <i class="bi bi-eye me-1"></i> Preview
@@ -305,7 +472,7 @@
         </button>
     </div>
  
-    {{-- ── Action buttons — quotation tab ── --}}
+    {{-- Quotation actions --}}
     <div id="actions-quotation" class="d-flex gap-2 mt-3" style="display:none !important;">
         <button class="btn btn-sm btn-outline-warning" id="btnQtPreview" disabled>
             <i class="bi bi-eye me-1"></i> Preview
@@ -321,7 +488,7 @@
         </button>
     </div>
  
-    {{-- ── Action buttons — payment tab ── --}}
+    {{-- Payment actions --}}
     <div id="actions-payment" class="d-flex gap-2 mt-3" style="display:none !important;">
         <button class="btn btn-sm btn-outline-warning" id="btnPyPreview" disabled>
             <i class="bi bi-eye me-1"></i> Preview
@@ -480,4 +647,3 @@
 </div>
  
 @endsection
- 
