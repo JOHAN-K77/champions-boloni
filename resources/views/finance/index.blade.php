@@ -1,14 +1,14 @@
 @extends('layouts.app')
-
+ 
 @section('title', 'Finance')
-
+ 
 @section('content')
-
+ 
 <div class="dashboard-card">
-
+ 
     <h3>Finance Module</h3>
     <hr>
-
+ 
     {{-- ══ TOP BAR ══════════════════════════════════════════════════ --}}
     <div class="d-flex align-items-start justify-content-between mb-2">
         <div>
@@ -34,7 +34,7 @@
             </a>
         </div>
     </div>
-
+ 
     {{-- ══ TAB STRIP ════════════════════════════════════════════════ --}}
     <div class="finance-tabs" id="financeTabs">
         <button class="fin-tab" data-tab="quotation">
@@ -47,7 +47,7 @@
             <i class="bi bi-cash-stack me-1"></i> Payment
         </button>
     </div>
-
+ 
     {{-- ══ SEARCH & FILTER ══════════════════════════════════════════ --}}
     <div class="d-flex gap-2 mt-2 mb-2">
         <div class="input-group input-group-sm" style="max-width:320px;">
@@ -63,15 +63,12 @@
             <i class="bi bi-x-lg"></i>
         </button>
     </div>
-
-
+ 
+ 
     {{-- ════════════════════════════════════════════════════════════
          PANEL 1: QUOTATION
-         Source: Subject_Fee + Student + Grade (via Class) +
-                 Installment_Offer
-         Cols: Quotation Date | Quotation ID | Class (Grade_Name) |
-               Student ID | Student Name | Instalment Name |
-               Note (Installment_Desc) | Instalment Date
+         Cols: Quotation Date | Quotation ID | Class |
+               Student ID | Student Name | Note
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-quotation" style="display:none;">
         <div class="richbox richbox-fullwidth">
@@ -91,12 +88,10 @@
                             <th style="width:38px;">#</th>
                             <th class="sortable" data-col="0" style="width:110px;">Quotation Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="1" style="width:140px;">Quotation ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="2" style="width:60px;">Class <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="2" style="width:65px;">Class <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="3" style="width:120px;">Student ID <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th class="sortable" data-col="4">Student Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="5" style="width:150px;">Instalment Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="6">Note <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                            <th class="sortable" data-col="7" style="width:110px;">Instalment Date <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th class="sortable" data-col="5">Note <i class="bi bi-arrow-down-up sort-icon"></i></th>
                         </tr>
                     </thead>
                     <tbody id="quotationBody">
@@ -109,20 +104,17 @@
                             <td class="text-center">{{ $q->Grade_Name ?? '—' }}</td>
                             <td class="text-muted">{{ $q->Student_ID }}</td>
                             <td>{{ $q->Student_Name ?? '—' }}</td>
-                            <td>{{ $q->Installment_Name ?? '—' }}</td>
-                            <td class="text-muted" style="white-space:normal; max-width:200px;">{{ $q->Installment_Desc ?? '—' }}</td>
-                            <td>{{ $q->Installment_Date ? \Carbon\Carbon::parse($q->Installment_Date)->format('Y-m-d') : '—' }}</td>
+                            <td class="text-muted" style="white-space:normal; max-width:220px;">{{ $q->Installment_Desc ?? '—' }}</td>
                         </tr>
                         @empty
-                        <tr id="qtEmptyRow">
-                            <td colspan="9" class="text-center text-muted py-4">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No quotation records found.
                             </td>
                         </tr>
                         @endforelse
-                        {{-- JS empty-state row (used when JS filter hides all rows) --}}
                         <tr id="qtEmptyRow" class="d-none">
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No quotation records found.
                             </td>
                         </tr>
@@ -136,15 +128,12 @@
             </div>
         </div>
     </div>
-
-
+ 
+ 
     {{-- ════════════════════════════════════════════════════════════
          PANEL 2: INVOICE
-         Source: Invoice + Subject_Fee + Student + Installment_Offer
-                 + Class + Academic_Year (GROUP_CONCAT for Term)
          Cols: Invoice Date | Invoice ID | Quotation ID |
-               Student Name | Term (Acd_Year) | Description |
-               Total Paid | Status
+               Student Name | Term | Description | Total Paid | Status
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-invoice">
         <div class="richbox richbox-fullwidth" id="invoiceBox">
@@ -177,7 +166,7 @@
                             data-id="{{ $inv->Invoice_ID }}"
                             data-date="{{ $inv->Invoice_Date ? \Carbon\Carbon::parse($inv->Invoice_Date)->format('Y-m-d') : '' }}"
                             data-quotation="{{ $inv->Quotation_ID }}"
-                            data-instalment="{{ $inv->Installment_Desc }}"
+                            data-instalment="{{ $inv->Installment_Desc ?? '' }}"
                             data-qdate=""
                             data-total="{{ number_format($inv->total_paid ?? 0, 0, ',', '.') }}"
                             data-status="{{ $inv->paid_status ? 'Paid' : 'Unpaid' }}">
@@ -188,9 +177,7 @@
                             <td>{{ $inv->Student_Name ?? '—' }}</td>
                             <td class="text-center text-muted" style="white-space:normal;">{{ $inv->Acd_Year ?? '—' }}</td>
                             <td class="text-muted" style="white-space:normal; max-width:200px;">{{ $inv->Installment_Desc ?? '—' }}</td>
-                            <td class="text-end fw-semibold">
-                                Rp {{ number_format($inv->total_paid ?? 0, 0, ',', '.') }}
-                            </td>
+                            <td class="text-end fw-semibold">Rp {{ number_format($inv->total_paid ?? 0, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <span class="status-badge {{ $inv->paid_status ? 'status-paid' : 'status-unpaid' }}">
                                     {{ $inv->paid_status ? 'Paid' : 'Unpaid' }}
@@ -198,7 +185,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr id="emptyRow">
+                        <tr>
                             <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No invoice records found.
                             </td>
@@ -220,15 +207,12 @@
             </div>
         </div>
     </div>
-
-
+ 
+ 
     {{-- ════════════════════════════════════════════════════════════
          PANEL 3: PAYMENT
-         Source: Payment + Invoice + Subject_Fee + Installment_Offer
-                 + Deposit (left) + Card (left) + Cek_Giro (left)
-         Cols: Invoice ID | Total Paid (empty, pending math) |
-               Payment Date | Description (Installment_Desc) |
-               Deposit ID | Card | Cek/Giro ID |
+         Cols: Invoice ID | Total Paid (pending) | Payment Date |
+               Description | Deposit ID | Card | Cek/Giro ID |
                Amount (Cash) | Amount (Card)
     ═════════════════════════════════════════════════════════════ --}}
     <div id="panel-payment" style="display:none;">
@@ -264,22 +248,17 @@
                             data-date="{{ $pay->Payment_Date ? \Carbon\Carbon::parse($pay->Payment_Date)->format('Y-m-d') : '' }}">
                             <td class="row-num text-muted">{{ $i + 1 }}</td>
                             <td class="fw-semibold">{{ $pay->Invoice_ID }}</td>
-                            {{-- Total Paid: left empty pending further math --}}
                             <td class="text-end text-muted">—</td>
                             <td>{{ $pay->Payment_Date ? \Carbon\Carbon::parse($pay->Payment_Date)->format('Y-m-d') : '—' }}</td>
                             <td class="text-muted" style="white-space:normal; max-width:200px;">{{ $pay->Installment_Desc ?? '—' }}</td>
                             <td class="text-muted">{{ $pay->Deposit_ID ?? '—' }}</td>
                             <td class="text-muted">{{ $pay->Card_Nama ?? '—' }}</td>
                             <td class="text-muted">{{ $pay->Cek_ID ?? '—' }}</td>
-                            <td class="text-end">
-                                {{ $pay->Amount_Cash ? 'Rp ' . number_format($pay->Amount_Cash, 0, ',', '.') : '—' }}
-                            </td>
-                            <td class="text-end">
-                                {{ $pay->Amount_Card ? 'Rp ' . number_format($pay->Amount_Card, 0, ',', '.') : '—' }}
-                            </td>
+                            <td class="text-end">{{ $pay->Amount_Cash ? 'Rp ' . number_format($pay->Amount_Cash, 0, ',', '.') : '—' }}</td>
+                            <td class="text-end">{{ $pay->Amount_Card ? 'Rp ' . number_format($pay->Amount_Card, 0, ',', '.') : '—' }}</td>
                         </tr>
                         @empty
-                        <tr id="pyEmptyRow">
+                        <tr>
                             <td colspan="10" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No payment records found.
                             </td>
@@ -300,11 +279,10 @@
             </div>
         </div>
     </div>
-
-
+ 
+ 
     {{-- ══ ACTION BUTTONS ═══════════════════════════════════════════ --}}
-
-    {{-- Invoice actions (original IDs kept intact) --}}
+ 
     <div id="actions-invoice" class="d-flex gap-2 mt-3">
         <button class="btn btn-sm btn-outline-warning inv-action-btn" id="btnPreview">
             <i class="bi bi-eye me-1"></i> Preview
@@ -319,8 +297,7 @@
             <i class="bi bi-printer me-1"></i> Print Invoice
         </button>
     </div>
-
-    {{-- Quotation actions --}}
+ 
     <div id="actions-quotation" class="d-flex gap-2 mt-3" style="display:none !important;">
         <button class="btn btn-sm btn-outline-warning" id="btnQtPreview" disabled>
             <i class="bi bi-eye me-1"></i> Preview
@@ -335,8 +312,7 @@
             <i class="bi bi-printer me-1"></i> Print
         </button>
     </div>
-
-    {{-- Payment actions --}}
+ 
     <div id="actions-payment" class="d-flex gap-2 mt-3" style="display:none !important;">
         <button class="btn btn-sm btn-outline-warning" id="btnPyPreview" disabled>
             <i class="bi bi-eye me-1"></i> Preview
@@ -351,15 +327,15 @@
             <i class="bi bi-printer me-1"></i> Print Receipt
         </button>
     </div>
-
+ 
 </div>{{-- /dashboard-card --}}
-
-
-{{-- ══ PREVIEW MODAL ════════════════════════════════════════════════ --}}
+ 
+ 
+{{-- ══ PREVIEW MODAL (invoice only, unchanged) ═════════════════════ --}}
 <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="border-radius:8px; overflow:hidden;">
-
+ 
             <div class="modal-header" style="background:#111; border-bottom:2px solid #e3b705; padding:10px 16px;">
                 <div>
                     <h6 class="modal-title mb-0" id="previewModalLabel"
@@ -371,10 +347,10 @@
                 <button type="button" class="btn-close btn-close-white btn-close-sm"
                         data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
+ 
             <div class="modal-body p-0">
                 <div id="receiptArea" style="padding:28px 36px; background:#fff;">
-
+ 
                     <div class="text-center mb-4">
                         <div style="font-size:17px; font-weight:800; color:#111; letter-spacing:.02em;">
                             THE CHAMPIONS SCHOOL
@@ -388,7 +364,7 @@
                             PAYMENT RECEIPT
                         </div>
                     </div>
-
+ 
                     <div class="row g-0 mb-3" style="font-size:13px;">
                         <div class="col-6">
                             <table style="width:100%; border:none;">
@@ -423,9 +399,9 @@
                             </table>
                         </div>
                     </div>
-
+ 
                     <hr style="border-top:1px dashed #bbb; margin:12px 0;">
-
+ 
                     <div style="font-size:12px; font-weight:700; text-transform:uppercase;
                                 letter-spacing:.06em; color:#555; margin-bottom:8px;">
                         Payment Detail
@@ -453,9 +429,9 @@
                             </tr>
                         </tfoot>
                     </table>
-
+ 
                     <hr style="border-top:1px dashed #bbb; margin:16px 0 12px;">
-
+ 
                     <div class="row g-0" style="font-size:12px; color:#555;">
                         <div class="col-6 text-center">
                             <div>Prepared by,</div>
@@ -472,14 +448,14 @@
                             </div>
                         </div>
                     </div>
-
+ 
                     <div class="text-center mt-4" style="font-size:10px; color:#aaa;">
                         This receipt is computer generated and is valid without signature when printed.
                     </div>
-
+ 
                 </div>
             </div>
-
+ 
             <div class="modal-footer" style="background:#f8f9fa; border-top:1px solid #e0e0e0; padding:8px 16px;">
                 <small class="text-muted me-auto" style="font-size:11px;">
                     <i class="bi bi-info-circle me-1"></i> Payment breakdown detail will be available once DB is connected.
@@ -489,9 +465,9 @@
                     <i class="bi bi-printer me-1"></i> Print
                 </button>
             </div>
-
+ 
         </div>
     </div>
 </div>
-
+ 
 @endsection
