@@ -1,10 +1,10 @@
 <?php
- 
+
 namespace App\Http\Controllers;
- 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
- 
+
 class FinanceController extends Controller
 {
     public function index()
@@ -25,6 +25,7 @@ class FinanceController extends Controller
             ->select([
                 'sf.Quotation_ID',
                 'sf.Quotation_Date',
+                'sf.Installment_Offer_Installment_ID',
                 's.Student_ID',
                 's.Student_Name',
                 'g.Grade_Name',
@@ -33,11 +34,30 @@ class FinanceController extends Controller
             ->orderByDesc('sf.Quotation_Date')
             ->distinct()
             ->get();
- 
+
+        // ── QUOTATION PREVIEW ITEMS ───────────────────────────────────
+        // Installment_Items (ii) joined to Purchase_Item (pi)
+        // Grouped by Installment_Offer_Installment_ID for JS lookup.
+        $quotationItems = DB::table('Installment_Items as ii')
+            ->join('Purchase_Item as pi',
+                'pi.Item_ID', '=', 'ii.Purchase_Item_Item_ID')
+            ->select([
+                'ii.Installment_Offer_Installment_ID',
+                'ii.Installment_Name',
+                'ii.Cost',
+                'ii.Pay',
+                'pi.Item_Name',
+            ])
+            ->orderBy('ii.Installment_Offer_Installment_ID')
+            ->orderBy('ii.Installment_Name')
+            ->orderBy('pi.Item_Name')
+            ->get()
+            ->groupBy('Installment_Offer_Installment_ID');
+
         // ── INVOICE ───────────────────────────────────────────────────
         $invoices = DB::table('Invoice as inv')
             ->join('Subject_Fee as sf',
-                'sf.Quotation_ID', '=', DB::raw('`inv`.`Subject_Fee_Quotation_ID`'))
+                'sf.Quotation_ID', '=', 'inv.Subject_Fee_Quotation_ID')
             ->join('Student as s',
                 's.Student_ID', '=', 'sf.Student_Student_ID')
             ->join('Installment_Offer as io',
@@ -51,7 +71,7 @@ class FinanceController extends Controller
                 'inv.Invoice_Date',
                 'inv.paid_status',
                 'inv.total_paid',
-                DB::raw('`inv`.`Subject_Fee_Quotation_ID` as Quotation_ID'),
+                'inv.Subject_Fee_Quotation_ID as Quotation_ID',
                 's.Student_Name',
                 'io.Installment_Desc',
                 DB::raw("GROUP_CONCAT(DISTINCT ay.Acd_Year ORDER BY ay.Acd_Year SEPARATOR ', ') as Acd_Year"),
@@ -61,19 +81,19 @@ class FinanceController extends Controller
                 'inv.Invoice_Date',
                 'inv.paid_status',
                 'inv.total_paid',
-                DB::raw('`inv`.`Subject_Fee_Quotation_ID`'),
+                'inv.Subject_Fee_Quotation_ID',
                 's.Student_Name',
                 'io.Installment_Desc',
             ])
             ->orderByDesc('inv.Invoice_Date')
             ->get();
- 
+
         // ── PAYMENT ───────────────────────────────────────────────────
         $payments = DB::table('Payment as pay')
             ->join('Invoice as inv',
                 'inv.Invoice_ID', '=', 'pay.Invoice_ID')
             ->join('Subject_Fee as sf',
-                'sf.Quotation_ID', '=', DB::raw('`inv`.`Subject_Fee_Quotation_ID`'))
+                'sf.Quotation_ID', '=', 'inv.Subject_Fee_Quotation_ID')
             ->join('Installment_Offer as io',
                 'io.Installment_ID', '=', 'sf.Installment_Offer_Installment_ID')
             ->leftJoin('Deposit as dep',
@@ -96,21 +116,22 @@ class FinanceController extends Controller
             ])
             ->orderByDesc('pay.Payment_Date')
             ->get();
- 
-        return view('finance.index', compact('quotations', 'invoices', 'payments'));
+
+        return view('finance.index', compact(
+            'quotations',
+            'quotationItems',
+            'invoices',
+            'payments'
+        ));
     }
- 
+
     public function cash()
     {
-        return view('finance.create', [
-            'module' => 'finance',
-        ]);
+        return view('finance.create', ['module' => 'finance']);
     }
- 
+
     public function payment()
     {
-        return view('finance.payment', [
-            'module' => 'finance',
-        ]);
+        return view('finance.payment', ['module' => 'finance']);
     }
 }
