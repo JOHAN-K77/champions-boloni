@@ -92,14 +92,14 @@ document.querySelectorAll('.tab-page').forEach((tab) => {
         if (!row || !previewModal) return;
  
         const d = row.dataset;
-        const subtitle = document.getElementById('previewModalSubtitle');
-        const invoiceId = document.getElementById('prev_invoiceId');
-        const invoiceDate = document.getElementById('prev_invoiceDate');
-        const quotationId = document.getElementById('prev_quotationId');
-        const instalment = document.getElementById('prev_instalment');
-        const qdate = document.getElementById('prev_qdate');
-        const total = document.getElementById('prev_total');
-        const statusEl = document.getElementById('prev_status');
+        const subtitle = document.getElementById('inv_prev_subtitle');
+        const invoiceId = document.getElementById('inv_prev_invoiceId');
+        const invoiceDate = document.getElementById('inv_prev_invoiceDate');
+        const quotationId = document.getElementById('inv_prev_quotationId');
+        const instalment = document.getElementById('inv_prev_instalment');
+        const qdate = document.getElementById('inv_prev_qdate');
+        const total = document.getElementById('inv_prev_total');
+        const statusEl = document.getElementById('inv_prev_status');
  
         if (subtitle) subtitle.textContent = d.id || '—';
         if (invoiceId) invoiceId.textContent = d.id || '—';

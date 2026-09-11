@@ -470,20 +470,24 @@
                     </div>
                     <div class="text-center mt-4" style="font-size:10px; color:#aaa;">
                         This document is computer generated and valid without signature when printed.
+                        This document is computer generated and valid without signature when printed.
                     </div>
 
                 </div>
             </div>
 
+
             <div class="modal-footer" style="background:#f8f9fa; border-top:1px solid #e0e0e0; padding:8px 16px;">
                 <small class="text-muted me-auto" style="font-size:11px;" id="previewModalFooterNote">
                     <i class="bi bi-info-circle me-1"></i> Payment breakdown detail will be available once DB is connected.
                 </small>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-sm btn-dark" id="btnPrintFromModal">
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-sm btn-dark" id="btnQtPrintFromModal">
                     <i class="bi bi-printer me-1"></i> Print
                 </button>
             </div>
+
 
         </div>
     </div>
