@@ -1,8 +1,11 @@
 @extends('layouts.app')
- 
 @section('title', 'Finance')
  
 @section('content')
+
+<script>
+    const QUOTATION_ITEMS = @json($quotationItems);
+</script>
  
 <div class="dashboard-card">
  
@@ -97,7 +100,13 @@
                     <tbody id="quotationBody">
                         @forelse($quotations as $i => $q)
                         <tr class="qt-row"
-                            data-date="{{ $q->Quotation_Date ? \Carbon\Carbon::parse($q->Quotation_Date)->format('Y-m-d') : '' }}">
+                            data-date="{{ $q->Quotation_Date ? \Carbon\Carbon::parse($q->Quotation_Date)->format('Y-m-d') : '' }}"
+                            data-quotation-id="{{ $q->Quotation_ID }}"
+                            data-installment-id="{{ $q->Installment_Offer_Installment_ID }}"
+                            data-student-id="{{ $q->Student_ID }}"
+                            data-student="{{ $q->Student_Name ?? '' }}"
+                            data-grade="{{ $q->Grade_Name ?? '' }}"
+                            data-note="{{ $q->Installment_Desc ?? '' }}">
                             <td class="row-num text-muted">{{ $i + 1 }}</td>
                             <td>{{ $q->Quotation_Date ? \Carbon\Carbon::parse($q->Quotation_Date)->format('Y-m-d') : '—' }}</td>
                             <td class="fw-semibold">{{ $q->Quotation_ID }}</td>
@@ -107,17 +116,12 @@
                             <td class="text-muted" style="white-space:normal; max-width:220px;">{{ $q->Installment_Desc ?? '—' }}</td>
                         </tr>
                         @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox me-1"></i> No quotation records found.
-                            </td>
-                        </tr>
-                        @endforelse
                         <tr id="qtEmptyRow" class="d-none">
                             <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No quotation records found.
                             </td>
                         </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -185,17 +189,12 @@
                             </td>
                         </tr>
                         @empty
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox me-1"></i> No invoice records found.
-                            </td>
-                        </tr>
-                        @endforelse
                         <tr id="emptyRow" class="d-none">
                             <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No invoice records found.
                             </td>
                         </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -258,17 +257,12 @@
                             <td class="text-end">{{ $pay->Amount_Card ? 'Rp ' . number_format($pay->Amount_Card, 0, ',', '.') : '—' }}</td>
                         </tr>
                         @empty
-                        <tr>
-                            <td colspan="10" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox me-1"></i> No payment records found.
-                            </td>
-                        </tr>
-                        @endforelse
                         <tr id="pyEmptyRow" class="d-none">
                             <td colspan="10" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox me-1"></i> No payment records found.
                             </td>
                         </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -352,12 +346,8 @@
                 <div id="receiptArea" style="padding:28px 36px; background:#fff;">
  
                     <div class="text-center mb-4">
-                        <div style="font-size:17px; font-weight:800; color:#111; letter-spacing:.02em;">
-                            THE CHAMPIONS SCHOOL
-                        </div>
-                        <div style="font-size:11px; color:#666; margin-top:2px;">
-                            Jl. Pendidikan No. 1, Boloni &nbsp;|&nbsp; Telp. (021) 000-0000
-                        </div>
+                        <div style="font-size:17px; font-weight:800; color:#111; letter-spacing:.02em;">THE CHAMPIONS SCHOOL</div>
+                        <div style="font-size:11px; color:#666; margin-top:2px;">Jl. Imam Bonjol No. 105, Denpasar &nbsp;|&nbsp; Telp. (0361) 000-0000</div>
                         <hr style="border-top:2px solid #111; margin:10px 0 4px;">
                         <hr style="border-top:1px solid #111; margin:0 0 12px;">
                         <div style="font-size:13px; font-weight:700; letter-spacing:.08em; color:#7e1e0d;">
@@ -450,7 +440,7 @@
                     </div>
  
                     <div class="text-center mt-4" style="font-size:10px; color:#aaa;">
-                        This receipt is computer generated and is valid without signature when printed.
+                        This document is computer generated and valid without signature when printed.
                     </div>
  
                 </div>
@@ -458,10 +448,11 @@
  
             <div class="modal-footer" style="background:#f8f9fa; border-top:1px solid #e0e0e0; padding:8px 16px;">
                 <small class="text-muted me-auto" style="font-size:11px;">
-                    <i class="bi bi-info-circle me-1"></i> Payment breakdown detail will be available once DB is connected.
+                    <i class="bi bi-info-circle me-1"></i>
+                    <span id="qt_prev_footer_note">—</span>
                 </small>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-sm btn-dark" id="btnPrintFromModal">
+                <button type="button" class="btn btn-sm btn-dark" id="btnQtPrintFromModal">
                     <i class="bi bi-printer me-1"></i> Print
                 </button>
             </div>
@@ -469,5 +460,152 @@
         </div>
     </div>
 </div>
+
+@include('partials.invoice-preview-modal')
+
+@include('partials.quotation-preview-modal')
+
+
+{{-- ══════════════════════════════════════════════════════════════════
+     QUOTATION PREVIEW JAVASCRIPT
+     Runs only when #quotationPreviewModal exists.
+     Completely separate from the invoice IIFE in finance.js.
+═══════════════════════════════════════════════════════════════════ --}}
+<script>
+(function () {
+    var btnQtPreview = document.getElementById('btnQtPreview');
+    if (!btnQtPreview) return;
+
+    function rp(val) {
+        if (val === null || val === undefined || val === '') return '—';
+        return 'Rp ' + Number(val).toLocaleString('id-ID');
+    }
+
+    function openQuotationPreview(row) {
+        var d = row.dataset;
+        var installmentId = d.installmentId || '';
+
+        // ── Fill header fields ───────────────────────────────────
+        document.getElementById('qt_prev_subtitle').textContent        = d.quotationId || '—';
+        document.getElementById('qt_prev_id').textContent             = d.quotationId  || '—';
+        document.getElementById('qt_prev_date').textContent           = d.date          || '—';
+        document.getElementById('qt_prev_installment_id').textContent = installmentId;
+        document.getElementById('qt_prev_student').textContent        = d.student       || '—';
+        document.getElementById('qt_prev_student_id').textContent     = d.studentId     || '—';
+        document.getElementById('qt_prev_note').textContent           = d.note          || '—';
+        document.getElementById('qt_prev_footer_note').textContent    =
+            'Installment ID: ' + installmentId;
+
+        // ── Build items table ────────────────────────────────────
+        var tbody     = document.getElementById('qt_prev_tbody');
+        var emptyRow  = document.getElementById('qt_prev_empty');
+        var tfoot     = document.getElementById('qt_prev_tfoot');
+        var grandTotalEl = document.getElementById('qt_prev_grand_total');
+
+        tbody.innerHTML = '';
+
+        var rawItems = QUOTATION_ITEMS[installmentId];
+        // QUOTATION_ITEMS is a Laravel Collection grouped by Installment_ID.
+        // Its values may be arrays or plain objects depending on JSON shape.
+        var items = rawItems ? Object.values(rawItems) : [];
+
+        if (!items.length) {
+            tbody.appendChild(emptyRow);
+            emptyRow.style.display = '';
+            tfoot.style.display = 'none';
+            grandTotalEl.textContent = '—';
+            new bootstrap.Modal(document.getElementById('quotationPreviewModal')).show();
+            return;
+        }
+
+        emptyRow.style.display = 'none';
+
+        // Group items by Installment_Name to apply rowspan on Pay column
+        var groups = {};
+        var groupOrder = [];
+        items.forEach(function (item) {
+            var name = item.Installment_Name || '(unnamed)';
+            if (!groups[name]) {
+                groups[name] = [];
+                groupOrder.push(name);
+            }
+            groups[name].push(item);
+        });
+
+        var grandTotal = 0;
+
+        groupOrder.forEach(function (groupName) {
+            var groupItems = groups[groupName];
+            // Pay is the same for all items in the group — take from first row
+            var groupPay = parseFloat(groupItems[0].Pay || 0);
+            grandTotal += groupPay;
+
+            groupItems.forEach(function (item, idx) {
+                var tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #ececec';
+
+                // Subject cell
+                var tdSubject = document.createElement('td');
+                tdSubject.style.padding = '6px 10px';
+                tdSubject.textContent = item.Item_Name || item.Item_ID || '—';
+                tr.appendChild(tdSubject);
+
+                // Fee cell
+                var tdFee = document.createElement('td');
+                tdFee.style.cssText = 'padding:6px 10px; text-align:right;';
+                tdFee.textContent = rp(item.Cost);
+                tr.appendChild(tdFee);
+
+                // Installment name cell — only on first row of the group, with rowspan
+                if (idx === 0) {
+                    var tdName = document.createElement('td');
+                    tdName.style.cssText = 'padding:6px 10px; font-weight:600; vertical-align:middle;';
+                    tdName.rowSpan = groupItems.length;
+                    tdName.textContent = groupName;
+                    tr.appendChild(tdName);
+
+                    // Pay cell — only on first row, with rowspan
+                    var tdPay = document.createElement('td');
+                    tdPay.style.cssText = 'padding:6px 10px; text-align:right; font-weight:700; color:#7e1e0d; vertical-align:middle;';
+                    tdPay.rowSpan = groupItems.length;
+                    tdPay.textContent = rp(groupPay);
+                    tr.appendChild(tdPay);
+                }
+
+                tbody.appendChild(tr);
+            });
+
+            // Separator row between groups (except after last)
+            if (groupName !== groupOrder[groupOrder.length - 1]) {
+                var sep = document.createElement('tr');
+                sep.innerHTML = '<td colspan="4" style="padding:0; border-bottom:1px solid #ddd;"></td>';
+                tbody.appendChild(sep);
+            }
+        });
+
+        grandTotalEl.textContent = rp(grandTotal);
+        tfoot.style.display = '';
+
+        new bootstrap.Modal(document.getElementById('quotationPreviewModal')).show();
+    }
+
+    // Preview button click
+    btnQtPreview.addEventListener('click', function () {
+        var selected = document.querySelector('.qt-row.row-selected');
+        if (selected) openQuotationPreview(selected);
+    });
+
+    // Double-click on row also opens preview
+    document.querySelectorAll('.qt-row').forEach(function (row) {
+        row.addEventListener('dblclick', function () { openQuotationPreview(row); });
+    });
+
+    // Print button inside modal
+    var btnQtPrint = document.getElementById('btnQtPrintFromModal');
+    if (btnQtPrint) {
+        btnQtPrint.addEventListener('click', function () { window.print(); });
+    }
+})();
+</script>
  
 @endsection
