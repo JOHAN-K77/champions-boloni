@@ -10,8 +10,6 @@ class FinanceController extends Controller
     public function index()
     {
         // ── QUOTATION ─────────────────────────────────────────────────
-        // Returns one row per Subject_Fee (distinct), with Grade via
-        // the corrected three-column Class join against Installment_Offer.
         $quotations = DB::table('Subject_Fee as sf')
             ->join('Student as s',
                 's.Student_ID', '=', 'sf.Student_Student_ID')
@@ -37,7 +35,6 @@ class FinanceController extends Controller
             ->get();
  
         // ── INVOICE ───────────────────────────────────────────────────
-        // Fixed: Subject_Fee_Quotation_ID (no space)
         $invoices = DB::table('Invoice as inv')
             ->join('Subject_Fee as sf',
                 'sf.Quotation_ID', '=', DB::raw('`inv`.`Subject_Fee_Quotation_ID`'))
@@ -72,7 +69,6 @@ class FinanceController extends Controller
             ->get();
  
         // ── PAYMENT ───────────────────────────────────────────────────
-        // Fixed: Subject_Fee_Quotation_ID (no space)
         $payments = DB::table('Payment as pay')
             ->join('Invoice as inv',
                 'inv.Invoice_ID', '=', 'pay.Invoice_ID')
